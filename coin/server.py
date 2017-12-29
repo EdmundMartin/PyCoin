@@ -62,12 +62,18 @@ class ChainServer:
 
     async def mine_coin(self, request):
         data = await request.json()
-        data = data.get('wallet')
-        if data:
-            future = [self.loop.run_in_executor(self.process_pool, self.block.generate_next_block, data)]
-            res = [response for response in await asyncio.gather(*future)]
-            return web.json_response({'message': 'Mined block with wallet address: {}'.format(data)})
-        return web.json_response({'message': 'No wallet provided'})
+        try:
+            coin_mined = self.block.validate_external_block(data)
+            if coin_mined:
+                return web.json_response({'message': 'Coin mined'})
+            else:
+                return web.json_response({'message': 'No coin mined'})
+        except Exception:
+            return web.json_response({'message': 'No coin mined'})
+
+    async def current_difficulty(self, request):
+        difficulty = self.block.get_difficulty(self.block.get_blockchain())
+        return web.json_response({'difficulty': difficulty})
 
     async def start_background_tasks(self, app):
         app['broadcasts'] = app.loop.create_task(self.broadcast_peers())
@@ -76,6 +82,7 @@ class ChainServer:
         app = web.Application()
         app.router.add_get('/chain', self.get_chain)
         app.router.add_get('/last-chain', self.last_chain)
+        app.router.add_get('/current-difficulty', self.current_difficulty)
         app.router.add_post('/updates', self.receive_updates)
         app.router.add_post('/mine', self.mine_coin)
         return app

@@ -140,6 +140,14 @@ class BlockChain:
         else:
             print('Received invalid blockchain')
 
+    def validate_external_block(self, new_block):
+        previous_block = self.get_last_block()
+        valid = self.valid_block(previous_block, new_block)
+        if valid:
+            self.block_list.append(new_block)
+            return True
+        else:
+            return False
 
 if __name__ == '__main__':
     b = BlockChain()
